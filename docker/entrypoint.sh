@@ -42,9 +42,11 @@ fi
 # Migrations gated by env var (default true for first deploy)
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "==> Running database migrations..."
-    timeout 300 run_as_app php artisan migrate --force --no-interaction
+    # timeout is an external binary: it must run *inside* the wrapper, because a
+    # shell function (run_as_app) cannot be executed by timeout directly.
+    run_as_app timeout 300 php artisan migrate --force --no-interaction
     echo "==> Migrations done, running filament:upgrade..."
-    timeout 300 run_as_app php artisan filament:upgrade || echo "WARN: filament:upgrade failed (non-fatal)"
+    run_as_app timeout 300 php artisan filament:upgrade || echo "WARN: filament:upgrade failed (non-fatal)"
     echo "==> Post-migrate steps done"
 fi
 
