@@ -25,8 +25,8 @@ if [ -z "$APP_KEY" ]; then
     exit 1
 fi
 
-# Run migrations if enabled via env var
-if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+# Run migrations (default to true for first deploy)
+if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "Running database migrations..."
     run_as_www php artisan migrate --force --no-interaction
 fi
