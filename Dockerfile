@@ -16,7 +16,7 @@ COPY vite.config.js ./
 RUN npm run build
 
 # Stage 2: Build Composer dependencies
-FROM composer:2.8 AS composer-builder
+FROM composer:2-php8.4 AS composer-builder
 
 # Install intl extension required by Laravel
 RUN apk add --no-cache icu-dev && \
@@ -31,7 +31,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 # Stage 3: Production image
-FROM php:8.3-fpm-alpine AS production
+FROM php:8.4-fpm-alpine AS production
 
 # Install system dependencies
 RUN apk add --no-cache \
