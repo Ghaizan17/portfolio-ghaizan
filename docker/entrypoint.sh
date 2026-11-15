@@ -78,7 +78,8 @@ SEED_DEMO_CONTENT="${SEED_DEMO_CONTENT:-false}"
 UPLOAD_MAX_IMAGE_KB="${UPLOAD_MAX_IMAGE_KB:-4096}"
 UPLOAD_MAX_DOCUMENT_KB="${UPLOAD_MAX_DOCUMENT_KB:-10240}"
 EOF
-chown www:www /var/www/html/.env
+fi
+
 
 # Generate APP_KEY if not set
 if [ -z "$APP_KEY" ]; then
