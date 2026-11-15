@@ -33,13 +33,6 @@ php artisan view:cache
 php artisan event:cache
 
 # Create storage link
-
-# Create supervisor log directory
-mkdir -p /var/log/supervisor
-chown -R www:www /var/log/supervisor
-
- # Set correct permissions
-
 # Set correct permissions
 chown -R www:www /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache

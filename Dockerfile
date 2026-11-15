@@ -90,13 +90,12 @@ COPY --from=frontend-builder --chown=www:www /app/public/build ./public/build
 # Copy vendor from composer-builder
 COPY --from=composer-builder --chown=www:www /app/vendor ./vendor
 
-# Create necessary directories and set permissions
 RUN mkdir -p \
     storage/framework/{cache,sessions,views,testing} \
     storage/logs \
     storage/app/public \
-    bootstrap/cache \
-    && chown -R www:www storage bootstrap/cache \
+    /var/log/supervisor \
+    && chown -R www:www /var/log/supervisor \
     && chmod -R 775 storage bootstrap/cache
 
 # Copy nginx and supervisor configs
