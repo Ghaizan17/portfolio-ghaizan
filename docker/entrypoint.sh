@@ -32,10 +32,5 @@ php artisan route:cache
 php artisan view:cache
 php artisan event:cache
 
-# Create storage link
-# Set correct permissions
-chown -R www:www /var/www/html/storage /var/www/html/bootstrap/cache
-chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
 # Start supervisor
 exec "$@"
