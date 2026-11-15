@@ -648,47 +648,52 @@
     }
 
     /* ---------------------------------------------------------------------
-       Three.js chrome sphere
+       Three.js hero object
        --------------------------------------------------------------------- */
 
-    .chrome-sphere {
+    .hero-object {
         @apply relative isolate;
     }
 
-    .chrome-sphere canvas {
-        @apply absolute inset-0 h-full w-full;
+    .hero-object::before {
+        content: '';
+        @apply pointer-events-none absolute left-1/2 top-1/2 rounded-full border border-dashed border-line;
+        width: 94%;
+        aspect-ratio: 1;
+        opacity: 0.32;
+        transform: translate(-50%, -50%) scaleY(0.92);
+    }
+
+    .hero-object canvas {
+        @apply absolute inset-0 z-10 h-full w-full;
         opacity: 0;
         transition: opacity 1.2s var(--ease-out-expo);
     }
 
-    .chrome-sphere.is-ready canvas {
+    .hero-object.is-ready canvas {
         opacity: 1;
     }
 
-    .chrome-fallback {
-        @apply absolute left-1/2 top-1/2 aspect-square w-[78%] -translate-x-1/2 -translate-y-1/2 rounded-full;
-        background:
-            radial-gradient(circle at 31% 24%, #ffffff 0%, #f4f4f5 8%, #a1a1aa 20%, #3f3f46 38%, #09090b 62%, #18181b 76%, #71717a 94%, #27272a 100%);
-        box-shadow:
-            inset -28px -32px 80px rgb(0 0 0 / 0.65),
-            inset 18px 20px 60px rgb(255 255 255 / 0.24),
-            0 50px 120px -40px rgb(0 0 0 / 0.7);
+    .hero-fallback {
+        @apply absolute inset-0 z-10 grid place-items-center;
         transition: opacity 0.9s var(--ease-out-expo);
     }
 
-    .chrome-fallback::after {
-        content: '';
-        @apply absolute inset-0 rounded-full;
-        background: radial-gradient(circle at 68% 78%, rgb(200 16 46 / 0.35), transparent 42%);
-        mix-blend-mode: screen;
+    .hero-fallback svg {
+        width: 88%;
+        height: auto;
+        filter: drop-shadow(0 40px 60px rgb(0 0 0 / 0.45));
     }
 
-    .chrome-sphere.is-ready .chrome-fallback {
+    .hero-object.is-ready .hero-fallback {
         opacity: 0;
     }
 
-    .chrome-orbit {
-        @apply pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-line;
+    @media (prefers-reduced-motion: reduce) {
+        .hero-object canvas,
+        .hero-fallback {
+            transition: none;
+        }
     }
 
     /* ---------------------------------------------------------------------

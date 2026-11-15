@@ -79,21 +79,53 @@
                 </div>
 
                 <div class="relative" data-hero-visual>
-                    <div class="chrome-sphere mx-auto aspect-square w-full max-w-[34rem]" data-chrome-sphere aria-hidden="true">
+                    <div class="hero-object mx-auto aspect-square w-full max-w-[34rem]" data-hero-object aria-hidden="true">
                         <canvas></canvas>
-                        <div class="chrome-fallback"></div>
-                        <div class="chrome-orbit h-[86%] w-[86%]"></div>
-                        <div class="chrome-orbit h-[102%] w-[102%] border-dashed opacity-50"></div>
-                        <div class="chrome-orbit h-[70%] w-[70%] opacity-30"></div>
+                        <div class="hero-fallback">
+                            <svg viewBox="0 0 420 320" role="presentation" focusable="false">
+                                <defs>
+                                    <linearGradient id="hero-laptop-body" x1="0" y1="0" x2="0.35" y2="1">
+                                        <stop offset="0" stop-color="#f4f5f7" />
+                                        <stop offset="0.32" stop-color="#c7cbd1" />
+                                        <stop offset="0.68" stop-color="#6c727c" />
+                                        <stop offset="1" stop-color="#e6e8ec" />
+                                    </linearGradient>
+                                    <linearGradient id="hero-laptop-screen" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0" stop-color="#16181f" />
+                                        <stop offset="1" stop-color="#08090b" />
+                                    </linearGradient>
+                                </defs>
+                                <g transform="rotate(-2 210 160)">
+                                    <ellipse cx="210" cy="250" rx="172" ry="16" fill="#000000" opacity="0.32" />
+                                    <rect x="78" y="34" width="264" height="178" rx="10" fill="url(#hero-laptop-body)" />
+                                    <rect x="88" y="44" width="244" height="152" rx="4" fill="url(#hero-laptop-screen)" />
+                                    <g>
+                                        <rect x="104" y="62" width="56" height="6" rx="3" fill="#ff6b7f" />
+                                        <rect x="166" y="62" width="86" height="6" rx="3" fill="#8b8f9a" />
+                                        <rect x="112" y="78" width="120" height="6" rx="3" fill="#7dd3fc" />
+                                        <rect x="112" y="94" width="72" height="6" rx="3" fill="#9ae6b4" />
+                                        <rect x="112" y="110" width="148" height="6" rx="3" fill="#8b8f9a" />
+                                        <rect x="120" y="126" width="92" height="6" rx="3" fill="#f6ad55" />
+                                        <rect x="104" y="142" width="134" height="6" rx="3" fill="#c8102e" />
+                                        <rect x="104" y="158" width="64" height="6" rx="3" fill="#7dd3fc" />
+                                        <rect x="112" y="174" width="108" height="6" rx="3" fill="#8b8f9a" />
+                                    </g>
+                                    <circle cx="210" cy="40" r="1.6" fill="#2a2c33" />
+                                    <path d="M52 212h316l16 22H36z" fill="url(#hero-laptop-body)" />
+                                    <path d="M52 212h316l4 6H48z" fill="#ffffff" opacity="0.35" />
+                                    <rect x="176" y="222" width="68" height="4" rx="2" fill="#7b8089" opacity="0.6" />
+                                </g>
+                            </svg>
+                        </div>
                     </div>
 
                     <div class="pointer-events-none absolute inset-x-0 top-2 flex items-start justify-between text-[0.5625rem] uppercase tracking-[0.2em] text-faint" aria-hidden="true">
                         <span>Study 001</span>
-                        <span>WebGL / Chrome</span>
+                        <span>WebGL / TypeScript</span>
                     </div>
                     <div class="pointer-events-none absolute inset-x-0 bottom-2 flex items-end justify-between text-[0.5625rem] uppercase tracking-[0.2em] text-faint" aria-hidden="true">
-                        <span>Interactive sphere</span>
-                        <span class="hidden sm:inline">Drag / Scroll</span>
+                        <span>Interactive workstation</span>
+                        <span class="hidden sm:inline">Move / Scroll</span>
                     </div>
                 </div>
             </div>

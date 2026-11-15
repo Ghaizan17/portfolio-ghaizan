@@ -94,13 +94,15 @@ The final suite contains **45 tests with 195 assertions, all passing**. Every pu
 
 - GSAP and ScrollTrigger page animations.
 - Hero entrance, reveal, and transition modules.
-- Lazy-loaded Three.js chrome sphere:
+- Lazy-loaded Three.js chrome laptop:
+  - Procedural chrome body, lid, keyboard, trackpad, and hinge
+  - CanvasTexture code editor with a typing reveal, syntax colours, blinking caret, active-line highlight, and status bar
   - RoomEnvironment reflections
   - Pointer parallax
   - Scroll-driven movement
-  - Mobile-aware geometry and pixel ratio
-  - WebGL detection with a styled fallback
-  - Static frame under `prefers-reduced-motion`
+  - Mobile-aware geometry, texture resolution, and pixel ratio
+  - WebGL detection with an inline SVG laptop fallback
+  - Static code frame under `prefers-reduced-motion`
   - Cleanup on Livewire navigation
 - Syntax highlighting for journal code blocks.
 - All animation and scene resources are disposed on navigation.

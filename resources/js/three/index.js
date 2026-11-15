@@ -10,8 +10,8 @@ function webglAvailable() {
     }
 }
 
-export function initChromeSphere() {
-    const container = document.querySelector('[data-chrome-sphere]');
+export function initHeroScene() {
+    const container = document.querySelector('[data-hero-object]');
 
     if (! container) {
         return;
@@ -31,23 +31,23 @@ export function initChromeSphere() {
     }
 
     import('./scene')
-        .then(({ ChromeSphereScene }) => {
-            sceneInstance = new ChromeSphereScene(container);
+        .then(({ HeroScene }) => {
+            sceneInstance = new HeroScene(container);
 
             return sceneInstance.init();
         })
         .catch((error) => {
             container.classList.add('is-fallback');
             container.dataset.threeFailed = 'true';
-            console.warn('Chrome sphere scene could not initialize.', error);
+            console.warn('Hero scene could not initialize.', error);
         });
 }
 
-export function cleanupThree() {
+export function cleanupHeroScene() {
     sceneInstance?.destroy();
     sceneInstance = null;
 
-    document.querySelectorAll('[data-chrome-sphere]').forEach((container) => {
+    document.querySelectorAll('[data-hero-object]').forEach((container) => {
         delete container.dataset.initialized;
     });
 }

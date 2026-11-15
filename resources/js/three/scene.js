@@ -4,12 +4,12 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { createCamera } from './camera';
 import { addLighting } from './lighting';
-import { createChromeSphere, disposeChromeSphere } from './objects/chrome-sphere';
+import { createChromeLaptop } from './objects/laptop';
 import { createRenderer, resizeRenderer } from './renderer';
 
 gsap.registerPlugin(ScrollTrigger);
 
-export class ChromeSphereScene {
+export class HeroScene {
     constructor(container) {
         this.container = container;
         this.canvas = container.querySelector('canvas');
@@ -40,9 +40,9 @@ export class ChromeSphereScene {
         this.scene.environment = this.environmentRenderTarget.texture;
         this.pmrem.dispose();
 
-        this.sphere = createChromeSphere();
+        this.laptop = createChromeLaptop();
         this.group = new THREE.Group();
-        this.group.add(this.sphere);
+        this.group.add(this.laptop.group);
         this.scene.add(this.group);
 
         this.resizeObserver = new ResizeObserver(this.handleResize);
@@ -78,7 +78,7 @@ export class ChromeSphereScene {
         this.render();
 
         if (! this.reducedMotion) {
-            gsap.fromTo(this.group.scale, { x: 0.82, y: 0.82, z: 0.82 }, {
+            gsap.fromTo(this.group.scale, { x: 0.9, y: 0.9, z: 0.9 }, {
                 x: 1,
                 y: 1,
                 z: 1,
@@ -152,19 +152,21 @@ export class ChromeSphereScene {
             this.smoothedPointer.x += (this.pointer.x - this.smoothedPointer.x) * 0.045;
             this.smoothedPointer.y += (this.pointer.y - this.smoothedPointer.y) * 0.045;
 
-            this.group.rotation.y = this.smoothedPointer.x * 0.42 + time * 0.06;
-            this.group.rotation.x = this.smoothedPointer.y * 0.22 + this.scrollProgress * 0.8;
-            this.group.position.y = Math.sin(time * 0.75) * 0.07 - this.scrollProgress * 0.45;
-            this.group.position.x = this.smoothedPointer.x * 0.08;
+            this.group.rotation.y = this.smoothedPointer.x * 0.28 + Math.sin(time * 0.3) * 0.045;
+            this.group.rotation.x = this.smoothedPointer.y * 0.08 + this.scrollProgress * 0.25;
+            this.group.position.y = Math.sin(time * 0.8) * 0.035 - this.scrollProgress * 0.32;
+            this.group.position.x = this.smoothedPointer.x * 0.04;
 
-            const scrollScale = 1 - this.scrollProgress * 0.18;
+            const scrollScale = 1 - this.scrollProgress * 0.12;
             this.group.scale.setScalar(scrollScale);
 
-            this.camera.position.z = 4.6 + this.scrollProgress * 0.6;
+            this.camera.position.z = 5.1 + this.scrollProgress * 0.55;
         } else {
-            this.group.rotation.set(0.12, 0.45, -0.03);
+            this.group.rotation.set(0.05, 0.3, 0);
+            this.camera.position.z = 5.1;
         }
 
+        this.laptop.update(time, this.reducedMotion);
         this.renderer.render(this.scene, this.camera);
     }
 
@@ -179,8 +181,8 @@ export class ChromeSphereScene {
         this.intersectionObserver?.disconnect();
         this.scrollTrigger?.kill();
 
-        if (this.sphere) {
-            disposeChromeSphere(this.sphere);
+        if (this.laptop) {
+            this.laptop.dispose();
         }
 
         this.environmentRenderTarget?.dispose();

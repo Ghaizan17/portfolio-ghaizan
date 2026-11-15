@@ -7,7 +7,7 @@ import { initLightbox } from './lightbox';
 import { highlightCodeBlocks } from './highlight';
 import { initPageAnimations, cleanupPageAnimations } from './animations/index';
 import { initPageTransitions } from './animations/transitions';
-import { cleanupThree, initChromeSphere } from './three/index';
+import { cleanupHeroScene, initHeroScene } from './three/index';
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -25,12 +25,12 @@ function bootPage() {
         console.error('Animation initialization failed', error);
     }
 
-    initChromeSphere();
+    initHeroScene();
 }
 
 function teardownPage() {
     cleanupPageAnimations();
-    cleanupThree();
+    cleanupHeroScene();
     cleanupNavigation();
     cleanupBackToTop();
 }

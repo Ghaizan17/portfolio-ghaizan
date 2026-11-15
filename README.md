@@ -2,7 +2,7 @@
 
 A production-ready personal portfolio and content platform built with Laravel 13, Livewire 4, Blade, Tailwind CSS 4, Filament 5, GSAP, and Three.js.
 
-The public site is an editorial, dark-first portfolio with a cinematic chrome sphere, a full-screen navigation index, project case studies, development stories, a journal, certificates, experience, testimonials, a moderated guestbook, and a private CV download. Every piece of content is managed from a Filament admin panel at `/admin`.
+The public site is an editorial, dark-first portfolio with a cinematic chrome 3D laptop whose screen renders live code, a full-screen navigation index, project case studies, development stories, a journal, certificates, experience, testimonials, a moderated guestbook, and a private CV download. Every piece of content is managed from a Filament admin panel at `/admin`.
 
 > **Content honesty:** the application ships with no claimed identity, education, experience, certificates, testimonials, skills, or project outcomes. Seeded demo content is explicitly labelled as demonstration content and is only created when `SEED_DEMO_CONTENT=true`. Replace every placeholder from the admin panel before publishing.
 
@@ -40,7 +40,7 @@ The public site is an editorial, dark-first portfolio with a cinematic chrome sp
 | Styling | Tailwind CSS 4 with CSS custom properties |
 | Admin | Filament 5 at `/admin` |
 | Animation | GSAP 3 + ScrollTrigger |
-| 3D | Three.js (lazy-loaded chrome sphere) |
+| 3D | Three.js (lazy-loaded chrome laptop with an animated code screen) |
 | Build | Vite 8 |
 | Database | SQLite locally, MySQL in production |
 | Rich text | HTMLPurifier via `mews/purifier` |
@@ -55,7 +55,7 @@ No React, Vue, Inertia, or additional frontend framework is used. Livewire handl
 ### Public experience
 
 - Dark-first design with a persistent light theme toggle and no flash of the wrong theme.
-- Cinematic hero with a lazy-loaded Three.js chrome sphere, pointer parallax, and scroll response.
+- Cinematic hero with a lazy-loaded Three.js chrome laptop whose screen renders animated code, pointer parallax, and scroll response.
 - WebGL fallback and a static frame under `prefers-reduced-motion`.
 - Full-screen navigation index dialog with keyboard and focus handling.
 - Editorial project archive with URL-synced search, category, technology, and sort filters.
