@@ -54,7 +54,8 @@ envsubst '$PORT' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.co
 
 # Verify nginx config
 nginx -t
-
+# Verify PHP-FPM config
+php-fpm -t
 
 # Start supervisor (runs as root to manage processes)
 exec "$@"
