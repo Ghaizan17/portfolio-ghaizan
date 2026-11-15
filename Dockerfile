@@ -50,7 +50,9 @@ RUN apk add --no-cache \
     postgresql-dev \
     icu-dev \
     linux-headers \
-    $PHPIZE_DEPS
+    $PHPIZE_DEPS \
+    gettext \
+    && rm -rf /var/cache/apk/*
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -90,13 +92,20 @@ COPY --from=frontend-builder --chown=www:www /app/public/build ./public/build
 # Copy vendor from composer-builder
 COPY --from=composer-builder --chown=www:www /app/vendor ./vendor
 
+# Create necessary directories and set permissions at build time
 RUN mkdir -p \
     storage/framework/{cache,sessions,views,testing} \
     storage/logs \
     storage/app/public \
+    bootstrap/cache \
+    /var/log/supervisor \
     /var/log/php-fpm \
-    && chown -R www:www /var/log/php-fpm \
+    /run/php \
+    && chown -R www:www storage bootstrap/cache /var/log/supervisor /var/log/php-fpm /run/php \
     && chmod -R 775 storage bootstrap/cache
+
+# Create storage link
+RUN php artisan storage:link 2>/dev/null || true
 
 # Copy nginx and supervisor configs
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
@@ -107,13 +116,12 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-
-# Expose port
+# Expose port (Render uses PORT env var, default 8000)
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/up || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/up || exit 1
 
 # Entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
