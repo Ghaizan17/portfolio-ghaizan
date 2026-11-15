@@ -18,6 +18,10 @@ RUN npm run build
 # Stage 2: Build Composer dependencies
 FROM composer:2.8 AS composer-builder
 
+# Install intl extension required by Laravel
+RUN apk add --no-cache icu-dev && \
+    docker-php-ext-install -j$(nproc) intl
+
 WORKDIR /app
 
 # Copy composer files
