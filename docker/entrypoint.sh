@@ -48,10 +48,12 @@ if [ ! -L /var/www/html/public/storage ]; then
     run_as_www php artisan storage:link 2>/dev/null || true
 fi
 
-
 # Substitute PORT in nginx config
 export PORT="${PORT:-8000}"
-envsubst '\$PORT' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.tmp && mv /etc/nginx/conf.d/default.conf.tmp /etc/nginx/conf.d/default.conf
+envsubst '$PORT' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.tmp && mv /etc/nginx/conf.d/default.conf.tmp /etc/nginx/conf.d/default.conf
+
+# Verify nginx config
+nginx -t
 
 
 # Start supervisor (runs as root to manage processes)
