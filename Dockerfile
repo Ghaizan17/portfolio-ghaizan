@@ -47,6 +47,8 @@ RUN apk add --no-cache \
     curl \
     oniguruma-dev \
     sqlite-dev \
+    postgresql-dev \
+    icu-dev \
     linux-headers \
     $PHPIZE_DEPS
 
