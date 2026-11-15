@@ -1,0 +1,67 @@
+<?php
+
+namespace App\Filament\Resources\Experiences\RelationManagers;
+
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+
+class MediaRelationManager extends RelationManager
+{
+    protected static string $relationship = 'media';
+
+    protected static ?string $title = 'Documentation images';
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                FileUpload::make('path')
+                    ->label('Image')
+                    ->image()
+                    ->required()
+                    ->disk('public')
+                    ->directory('experiences')
+                    ->visibility('public')
+                    ->maxSize((int) config('digital-dimension.uploads.max_image_kb'))
+                    ->acceptedFileTypes(config('digital-dimension.uploads.image_mimes'))
+                    ->columnSpanFull(),
+                TextInput::make('caption')->maxLength(255),
+                TextInput::make('sort_order')->numeric()->default(0)->required(),
+            ])
+            ->columns(2);
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->recordTitleAttribute('caption')
+            ->defaultSort('sort_order')
+            ->columns([
+                ImageColumn::make('path')->label('Image')->disk('public')->square()->size(48),
+                TextColumn::make('caption')->searchable(),
+                TextColumn::make('sort_order')->numeric()->sortable(),
+            ])
+            ->headerActions([
+                CreateAction::make(),
+            ])
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+}
