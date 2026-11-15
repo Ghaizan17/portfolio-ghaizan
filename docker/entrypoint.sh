@@ -16,7 +16,9 @@ if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "localhost" ] && [ "$DB_HOST" != "127.0.
         $host = getenv("DB_HOST");
         $port = (int) getenv("DB_PORT");
         for ($i = 0; $i < 60; $i++) {
-            if (@fsockopen($host, $port, 2)) {
+            $errno = 0;
+            $errstr = "";
+            if (@fsockopen($host, $port, $errno, $errstr, 2)) {
                 fwrite(STDOUT, "Database is ready!\n");
                 exit(0);
             }
