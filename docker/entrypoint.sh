@@ -3,6 +3,14 @@
 
 set -e
 
+# Install su-exec for user switching
+apk add --no-cache su-exec 2>/dev/null || true
+
+# Run command as www user
+run_as_www() {
+    su-exec www "$@"
+}
+
 # Wait for database if using external DB
 if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "localhost" ] && [ "$DB_HOST" != "127.0.0.1" ]; then
     echo "Waiting for database at $DB_HOST:$DB_PORT..."
@@ -15,22 +23,22 @@ fi
 # Generate APP_KEY if not set
 if [ -z "$APP_KEY" ]; then
     echo "Generating APP_KEY..."
-    php artisan key:generate --force
+    run_as_www php artisan key:generate --force
 fi
 
 # Run migrations
 echo "Running database migrations..."
-php artisan migrate --force --no-interaction
+run_as_www php artisan migrate --force --no-interaction
 
 # Clear and cache config
 echo "Optimizing Laravel..."
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache
+run_as_www php artisan config:clear
+run_as_www php artisan route:clear
+run_as_www php artisan view:clear
+run_as_www php artisan config:cache
+run_as_www php artisan route:cache
+run_as_www php artisan view:cache
+run_as_www php artisan event:cache
 
-# Start supervisor
+# Start supervisor (runs as root to manage processes)
 exec "$@"
