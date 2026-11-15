@@ -40,5 +40,9 @@ run_as_www php artisan route:cache
 run_as_www php artisan view:cache
 run_as_www php artisan event:cache
 
+# Ensure supervisor log directory exists
+mkdir -p /var/log/supervisor /var/log/php-fpm
+chown -R www:www /var/log/supervisor /var/log/php-fpm
+
 # Start supervisor (runs as root to manage processes)
 exec "$@"

@@ -94,8 +94,8 @@ RUN mkdir -p \
     storage/framework/{cache,sessions,views,testing} \
     storage/logs \
     storage/app/public \
-    /run/php \
-    && chown -R www:www /run/php \
+    /var/log/php-fpm \
+    && chown -R www:www /var/log/php-fpm \
     && chmod -R 775 storage bootstrap/cache
 
 # Copy nginx and supervisor configs
