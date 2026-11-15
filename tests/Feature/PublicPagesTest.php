@@ -96,6 +96,20 @@ class PublicPagesTest extends TestCase
             ->assertDontSee(route('journal.show', $draftPost), false);
     }
 
+    public function test_generated_urls_use_https_when_forwarded_by_a_proxy(): void
+    {
+        $response = $this->withServerVariables([
+            'REMOTE_ADDR' => '10.0.0.1',
+            'HTTP_HOST' => 'ghaizan.my.id',
+            'HTTP_X_FORWARDED_FOR' => '203.0.113.7',
+            'HTTP_X_FORWARDED_PROTO' => 'https',
+        ])->get('/sitemap.xml');
+
+        $response->assertOk()
+            ->assertSee('<loc>https://', false)
+            ->assertDontSee('<loc>http://', false);
+    }
+
     public function test_robots_txt_disallows_admin_and_links_the_sitemap(): void
     {
         $this->get(route('robots'))

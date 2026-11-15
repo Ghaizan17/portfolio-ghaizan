@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Render (and Cloudflare in front of it) terminate TLS and forward the
+        // original scheme through X-Forwarded-Proto. Without trusting the proxy,
+        // Laravel sees plain HTTP and generates http:// asset URLs, which the
+        // browser blocks as mixed content on the https:// page.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
