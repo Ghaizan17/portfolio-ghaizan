@@ -85,6 +85,13 @@ RUN mkdir -p \
     && chmod -R 775 storage bootstrap/cache \
     && (php artisan storage:link || true)
 
+# Filament publishes its CSS/JS/fonts into public/ which is gitignored, so it
+# must be generated during the build - otherwise every /css/filament/*,
+# /js/filament/* and /fonts/filament/* request 404s and the admin panel loads
+# unstyled.
+RUN php artisan filament:assets --no-interaction \
+    && chown -R www-data:www-data public/css public/js public/fonts
+
 # Supervisor config + entrypoint
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/laravel.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
