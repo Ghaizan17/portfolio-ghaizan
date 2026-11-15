@@ -28,7 +28,7 @@ class CertificateForm
                     ])
                     ->columns(2),
                 Textarea::make('description')->rows(4)->columnSpanFull(),
-                Section::make('Certificate file')
+                Section::make('Certificate files')
                     ->schema([
                         FileUpload::make('file_path')
                             ->label('Certificate image or PDF')
@@ -46,6 +46,14 @@ class CertificateForm
                             ->disabled()
                             ->dehydrated(false)
                             ->helperText('Detected automatically from the uploaded file extension.'),
+                        FileUpload::make('cover_image_path')
+                            ->label('Card cover image')
+                            ->image()
+                            ->disk('public')
+                            ->directory('certificates/covers')
+                            ->visibility('public')
+                            ->maxSize((int) config('digital-dimension.uploads.max_image_kb'))
+                            ->helperText('Optional landscape image shown on the public certificate card. Recommended when the certificate file is a PDF.'),
                     ])
                     ->columns(2),
             ]);

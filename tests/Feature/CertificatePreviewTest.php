@@ -36,6 +36,23 @@ class CertificatePreviewTest extends TestCase
             ->assertSee(Storage::disk('public')->url('certificates/award.jpg'), false);
     }
 
+    public function test_cover_image_is_used_for_a_pdf_certificate_card(): void
+    {
+        Storage::disk('public')->put('certificates/award.pdf', 'fake pdf');
+        Storage::disk('public')->put('certificates/covers/cover.jpg', 'fake image');
+
+        Certificate::factory()->create([
+            'title' => 'Covered Award',
+            'file_path' => 'certificates/award.pdf',
+            'file_type' => 'pdf',
+            'cover_image_path' => 'certificates/covers/cover.jpg',
+        ]);
+
+        $this->get(route('certificates'))
+            ->assertOk()
+            ->assertSee(Storage::disk('public')->url('certificates/covers/cover.jpg'), false);
+    }
+
     public function test_supporting_media_image_is_used_when_the_main_file_is_a_pdf(): void
     {
         Storage::disk('public')->put('certificates/award.pdf', 'fake pdf');

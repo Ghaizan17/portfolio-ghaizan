@@ -75,8 +75,8 @@
 
     <dialog class="lightbox-dialog" data-lightbox aria-label="Image viewer">
         <div class="relative flex max-h-[94dvh] flex-col">
-            <div class="relative bg-black/40">
-                <img data-lightbox-image src="" alt="" class="max-h-[76dvh] w-auto object-contain">
+            <div class="relative flex items-center justify-center bg-black/40">
+                <img data-lightbox-image src="" alt="" class="mx-auto max-h-[76dvh] w-auto object-contain">
             </div>
             <div class="flex items-center justify-between gap-4 border-t border-white/10 bg-black/60 px-4 py-3">
                 <div class="min-w-0">

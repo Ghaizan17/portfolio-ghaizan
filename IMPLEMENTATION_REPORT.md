@@ -21,7 +21,7 @@ All required phases are complete:
 6. GSAP and Three.js interaction layer
 7. QA, documentation, and deployment preparation
 
-The final suite contains **43 tests with 190 assertions, all passing**. Every public route and every Filament resource page was also exercised through HTTP and a real headless browser.
+The final suite contains **45 tests with 195 assertions, all passing**. Every public route and every Filament resource page was also exercised through HTTP and a real headless browser.
 
 ---
 
@@ -123,7 +123,7 @@ The final suite contains **43 tests with 190 assertions, all passing**. Every pu
 ### 3.1 Automated test suite
 
 ```text
-43 tests, 190 assertions — all passing
+45 tests, 195 assertions — all passing
 ```
 
 Coverage includes:
@@ -205,7 +205,7 @@ The Three.js chunk exceeds Vite's default 500 kB warning threshold. This is expe
 | `blade-ui-kit/blade-icons` registers a class component named `icon`, shadowing the project's anonymous icon component; every page failed with “Svg by name … not found” | Renamed the project component to `x-ui-icon` and updated all 54 usages |
 | Page views used `$siteSocialLinks`, `$siteProfile`, `$siteSettings`, and `$siteDemoMode`, but the view composer only ran for the layout | Switched to `View::share()` once per request with a safe fallback |
 | Three.js animation loop passed an unbound method to `requestAnimationFrame`, causing `Cannot read properties of undefined (reading 'animate')` after the first frame | Bound `animate()` in the scene constructor |
-| Certificate cards never resolved a preview because the media lookup compared the accessor `url` with `!= null`, and admin tables treated PDF paths as images | Added `preview_url`/`preview_path` accessors on the model, used the first supporting image with an image-file fallback for cards, showed a PDF placeholder in admin tables and infolists, and auto-detected `file_type` from the extension with a normalizing migration |
+| Certificate cards never resolved a preview because the media lookup compared the accessor `url` with `!= null`, and admin tables treated PDF paths as images | Added `preview_url`/`preview_path` accessors on the model, an explicit “Card cover image” upload for PDF certificates, a first-supporting-image and image-file fallback for cards, a PDF placeholder in admin tables and infolists, and automatic `file_type` detection from the extension with a normalizing migration |
 | Earlier phases: incorrect Post/PostTag pivot keys, lightbox group index, duplicate ScrollTrigger registration, stale theme bindings after Livewire navigation, listener leaks | Corrected before final QA |
 
 ---

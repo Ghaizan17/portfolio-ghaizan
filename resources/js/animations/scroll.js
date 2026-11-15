@@ -13,7 +13,6 @@ export function initScrollReveals() {
                 opacity: 1,
                 duration: 0.95,
                 ease: 'power3.out',
-                clearProps: 'transform',
                 scrollTrigger: {
                     trigger: element,
                     start: 'top 88%',
@@ -42,7 +41,6 @@ export function initScrollReveals() {
                 duration: 0.85,
                 stagger: 0.08,
                 ease: 'power3.out',
-                clearProps: 'transform',
                 scrollTrigger: {
                     trigger: group,
                     start: 'top 86%',

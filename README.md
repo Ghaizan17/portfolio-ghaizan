@@ -411,7 +411,7 @@ Coverage includes:
 - Private resume download and preview behavior.
 - Rich-text sanitization on save and render.
 
-Current status: **43 tests, 190 assertions, all passing.**
+Current status: **45 tests, 195 assertions, all passing.**
 
 Format PHP before committing:
 

@@ -23,6 +23,7 @@ class Certificate extends Model
         'description',
         'file_path',
         'file_type',
+        'cover_image_path',
         'sort_order',
         'is_published',
     ];
@@ -59,17 +60,26 @@ class Certificate extends Model
         return $this->publicImageUrl($this->file_path);
     }
 
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return $this->publicImageUrl($this->cover_image_path);
+    }
+
     public function getIsPdfAttribute(): bool
     {
         return $this->file_type === 'pdf' || str_ends_with((string) $this->file_path, '.pdf');
     }
 
     /**
-     * The best available visual preview: the first supporting image, then the
-     * main certificate file when it is an image rather than a PDF.
+     * The best available visual preview: an explicit cover image, then the
+     * first supporting image, then the main file when it is an image.
      */
     public function getPreviewUrlAttribute(): ?string
     {
+        if (filled($coverImageUrl = $this->cover_image_url)) {
+            return $coverImageUrl;
+        }
+
         $mediaPreview = $this->media->first(
             fn (CertificateMedia $media): bool => filled($media->url),
         );
@@ -86,6 +96,10 @@ class Certificate extends Model
      */
     public function getPreviewPathAttribute(): ?string
     {
+        if (filled($this->cover_image_path)) {
+            return $this->cover_image_path;
+        }
+
         $mediaPreview = $this->media->first(
             fn (CertificateMedia $media): bool => filled($media->path),
         );
