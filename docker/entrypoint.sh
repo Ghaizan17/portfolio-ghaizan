@@ -68,6 +68,13 @@ fi
 # readable by www-data and breaks libpq SSL cert lookup (postgresql.crt)
 export HOME=/var/www/html
 
+# Render only captures stdout/stderr, so also stream application logs there.
+# Without this a 500 error is written to storage/logs only and is invisible.
+case ",${LOG_STACK:-single}," in
+    *,stderr,*) ;;
+    *) export LOG_STACK="${LOG_STACK:-single},stderr" ;;
+esac
+
 # Substitute PORT into Apache configs
 envsubst '$PORT' < /etc/apache2/ports.conf.template > /etc/apache2/ports.conf
 envsubst '$PORT' < /etc/apache2/sites-available/000-default.conf.template > /etc/apache2/sites-available/000-default.conf
