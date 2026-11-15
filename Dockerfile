@@ -72,8 +72,9 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 # Install Redis extension
 RUN pecl install redis && docker-php-ext-enable redis
 
-# Configure PHP
+# Configure PHP - remove default pool configs that conflict with our www.conf
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-custom.ini
+RUN rm -f /usr/local/etc/php-fpm.d/docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
 COPY docker/php-fpm/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 # Create non-root user

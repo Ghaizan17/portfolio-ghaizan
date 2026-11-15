@@ -39,6 +39,7 @@ mkdir -p /var/www/html/bootstrap/cache
 mkdir -p /var/log/supervisor
 mkdir -p /var/log/php-fpm
 mkdir -p /run/php
+rm -f /run/php/php-fpm.sock
 
 chown -R www:www /var/www/html/storage /var/www/html/bootstrap/cache /var/log/supervisor /var/log/php-fpm /run/php
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
