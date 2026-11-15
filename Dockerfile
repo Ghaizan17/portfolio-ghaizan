@@ -16,7 +16,7 @@ COPY vite.config.js ./
 RUN npm run build
 
 # Stage 2: Build Composer dependencies
-FROM composer:2-php8.4 AS composer-builder
+FROM composer:2 AS composer-builder
 
 # Install intl extension required by Laravel
 RUN apk add --no-cache icu-dev && \
