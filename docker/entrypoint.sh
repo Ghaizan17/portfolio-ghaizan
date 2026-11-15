@@ -58,5 +58,9 @@ nginx -t
 # Verify PHP-FPM config
 php-fpm -t
 
+# Fix HOME: supervisor children inherit root's HOME (/root), which is not
+# readable by www and breaks libpq SSL cert lookup (postgresql.crt)
+export HOME=/var/www/html
+
 # Start supervisor (runs as root to manage processes)
 exec "$@"
