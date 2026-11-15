@@ -1,129 +1,99 @@
-# Multi-stage Dockerfile for Laravel Portfolio
+# Multi-stage Dockerfile for Laravel Portfolio (Apache + mod_php)
 # Stage 1: Build frontend assets
 FROM node:22-alpine AS frontend-builder
 
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
 RUN npm ci --ignore-scripts
 
-# Copy source files
 COPY resources/ ./resources/
 COPY vite.config.js ./
-
-# Build production assets
 RUN npm run build
 
 # Stage 2: Build Composer dependencies
 FROM composer:2 AS composer-builder
 
-# Install intl extension required by Laravel
 RUN apk add --no-cache icu-dev && \
     docker-php-ext-install -j$(nproc) intl
 
 WORKDIR /app
 
-# Copy composer files
 COPY composer.json composer.lock ./
-
-# Install PHP dependencies (production only)
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
-# Stage 3: Production image
-FROM php:8.4-fpm-alpine AS production
+# Stage 3: Production image - Apache with mod_php (no PHP-FPM, no sockets)
+FROM php:8.4-apache AS production
 
-# Install system dependencies
-RUN apk add --no-cache \
-    nginx \
-    supervisor \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    libzip-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    oniguruma-dev \
-    sqlite-dev \
-    postgresql-dev \
-    icu-dev \
-    linux-headers \
-    $PHPIZE_DEPS \
-    gettext \
-    && rm -rf /var/cache/apk/*
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install PHP extensions
+# System deps: build headers for PHP exts + runtime tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libzip-dev \
+        libpng-dev \
+        libjpeg-dev \
+        libfreetype6-dev \
+        libicu-dev \
+        libpq-dev \
+        curl \
+        ca-certificates \
+        gettext-base \
+        supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-    pdo \
-    pdo_mysql \
-    pdo_pgsql \
-    pdo_sqlite \
-    mbstring \
-    zip \
-    gd \
-    intl \
-    opcache \
-    bcmath \
-    pcntl
+        pdo_pgsql \
+        opcache \
+        intl \
+        zip \
+        gd \
+        bcmath \
+        pcntl
 
-# Install Redis extension
+# Redis extension (optional at runtime, cheap to include)
 RUN pecl install redis && docker-php-ext-enable redis
 
-# Configure PHP - remove default pool configs that conflict with our www.conf
+# Apache modules for Laravel (.htaccess front controller)
+RUN a2enmod rewrite
+
+# PHP config
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-custom.ini
-RUN rm -f /usr/local/etc/php-fpm.d/docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
-COPY docker/php-fpm/www.conf /usr/local/etc/php-fpm.d/www.conf
 
-# Create non-root user
-RUN addgroup -g 1000 -S www && \
-    adduser -u 1000 -S www -G www
+# Apache config templates ($PORT substituted at runtime by entrypoint)
+COPY docker/apache/ports.conf /etc/apache2/ports.conf.template
+COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf.template
+RUN echo "ServerName localhost" > /etc/apache2/conf-available/servername.conf \
+    && a2enconf servername
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy application code
-COPY --chown=www:www . .
+# Application code (www-data = uid 33, the Apache/mod_php runtime user)
+COPY --chown=www-data:www-data . .
+COPY --from=frontend-builder --chown=www-data:www-data /app/public/build ./public/build
+COPY --from=composer-builder --chown=www-data:www-data /app/vendor ./vendor
 
-# Copy built assets from frontend-builder
-COPY --from=frontend-builder --chown=www:www /app/public/build ./public/build
-
-# Copy vendor from composer-builder
-COPY --from=composer-builder --chown=www:www /app/vendor ./vendor
-
-# Create necessary directories and set permissions at build time
+# Runtime directories + permissions at build time
 RUN mkdir -p \
-    storage/framework/{cache,sessions,views,testing} \
-    storage/logs \
-    storage/app/public \
-    bootstrap/cache \
-    /var/log/supervisor \
-    /var/log/php-fpm \
-    /run/php \
-    && chown -R www:www storage bootstrap/cache /var/log/supervisor /var/log/php-fpm /run/php \
-    && chmod -R 775 storage bootstrap/cache
+        storage/framework/{cache,sessions,views,testing} \
+        storage/logs \
+        storage/app/public \
+        bootstrap/cache \
+        /var/log/supervisor \
+    && chown -R www-data:www-data storage bootstrap/cache /var/log/supervisor \
+    && chmod -R 775 storage bootstrap/cache \
+    && (php artisan storage:link || true)
 
-# Create storage link
-RUN php artisan storage:link 2>/dev/null || true
-
-# Copy nginx and supervisor configs
-COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Copy entrypoint script
+# Supervisor config + entrypoint
+COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/laravel.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Expose port (Render uses PORT env var, default 8000)
-EXPOSE 8000
+EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD sh -c "curl -f http://localhost:\${PORT:-8000}/up || exit 1"
+    CMD sh -c "curl -fsS http://localhost:\${PORT:-80}/up || exit 1"
 
-# Entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

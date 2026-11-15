@@ -1,23 +1,33 @@
 #!/bin/sh
-# Entrypoint script for Laravel production container
+# Entrypoint for Laravel production container (Apache + mod_php)
 
 set -e
 
-# Helper to run commands as www user
-run_as_www() {
-    su-exec www "$@"
+run_as_app() {
+    runuser -u www-data -- "$@"
 }
 
-# Wait for database if using external DB (Supabase)
+export PORT="${PORT:-80}"
+
+# Wait for database (Supabase) using PHP - netcat is not guaranteed on Debian
 if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "localhost" ] && [ "$DB_HOST" != "127.0.0.1" ]; then
     echo "Waiting for database at $DB_HOST:$DB_PORT..."
-    while ! nc -z "$DB_HOST" "$DB_PORT" 2>/dev/null; do
-        sleep 1
-    done
-    echo "Database is ready!"
+    php -r '
+        $host = getenv("DB_HOST");
+        $port = (int) getenv("DB_PORT");
+        for ($i = 0; $i < 60; $i++) {
+            if (@fsockopen($host, $port, 2)) {
+                fwrite(STDOUT, "Database is ready!\n");
+                exit(0);
+            }
+            sleep(1);
+        }
+        fwrite(STDERR, "ERROR: database not reachable after 60s\n");
+        exit(1);
+    '
 fi
 
-# Validate APP_KEY is set
+# Validate APP_KEY comes from platform environment
 if [ -z "$APP_KEY" ]; then
     echo "ERROR: APP_KEY environment variable is not set"
     echo "Generate one locally with: php artisan key:generate --show"
@@ -25,42 +35,39 @@ if [ -z "$APP_KEY" ]; then
     exit 1
 fi
 
-# Run migrations (default to true for first deploy)
+# Migrations gated by env var (default true for first deploy)
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "Running database migrations..."
-    run_as_www php artisan migrate --force --no-interaction
+    run_as_app php artisan migrate --force --no-interaction
+    run_as_app php artisan filament:upgrade || echo "WARN: filament:upgrade failed (non-fatal)"
 fi
 
-# Ensure storage and cache directories exist with correct permissions
-mkdir -p /var/www/html/storage/framework/{cache,sessions,views,testing}
-mkdir -p /var/www/html/storage/logs
-mkdir -p /var/www/html/storage/app/public
-mkdir -p /var/www/html/bootstrap/cache
-mkdir -p /var/log/supervisor
-mkdir -p /var/log/php-fpm
-mkdir -p /run/php
-rm -f /run/php/php-fpm.sock
+# Ensure runtime directories and permissions
+mkdir -p \
+    storage/framework/{cache,sessions,views,testing} \
+    storage/logs \
+    storage/app/public \
+    bootstrap/cache \
+    /var/log/supervisor
 
-chown -R www:www /var/www/html/storage /var/www/html/bootstrap/cache /var/log/supervisor /var/log/php-fpm /run/php
-chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache /var/log/supervisor
+chmod -R 775 storage bootstrap/cache
 
-# Create storage link if it doesn't exist
-if [ ! -L /var/www/html/public/storage ]; then
-    run_as_www php artisan storage:link 2>/dev/null || true
+# Create storage link if missing
+if [ ! -L public/storage ]; then
+    run_as_app php artisan storage:link
 fi
-
-# Substitute PORT in nginx config
-export PORT="${PORT:-8000}"
-envsubst '$PORT' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.tmp && mv /etc/nginx/conf.d/default.conf.tmp /etc/nginx/conf.d/default.conf
-
-# Verify nginx config
-nginx -t
-# Verify PHP-FPM config
-php-fpm -t
 
 # Fix HOME: supervisor children inherit root's HOME (/root), which is not
-# readable by www and breaks libpq SSL cert lookup (postgresql.crt)
+# readable by www-data and breaks libpq SSL cert lookup (postgresql.crt)
 export HOME=/var/www/html
 
-# Start supervisor (runs as root to manage processes)
+# Substitute PORT into Apache configs
+envsubst '$PORT' < /etc/apache2/ports.conf.template > /etc/apache2/ports.conf
+envsubst '$PORT' < /etc/apache2/sites-available/000-default.conf.template > /etc/apache2/sites-available/000-default.conf
+
+# Verify Apache config before starting
+apachectl configtest
+
+# Start supervisor (PID 1) managing apache + queue workers + scheduler
 exec "$@"
