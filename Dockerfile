@@ -76,7 +76,10 @@ COPY --from=composer-builder --chown=www-data:www-data /app/vendor ./vendor
 
 # Runtime directories + permissions at build time
 RUN mkdir -p \
-        storage/framework/{cache,sessions,views,testing} \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/framework/testing \
         storage/logs \
         storage/app/public \
         bootstrap/cache \

@@ -52,7 +52,10 @@ fi
 
 # Ensure runtime directories and permissions
 mkdir -p \
-    storage/framework/{cache,sessions,views,testing} \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/framework/testing \
     storage/logs \
     storage/app/public \
     bootstrap/cache \
