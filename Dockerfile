@@ -99,7 +99,10 @@ RUN php artisan filament:assets --no-interaction \
 # Supervisor config + entrypoint
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/laravel.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh \
+    && sed -i '1s/^\xEF\xBB\xBF//' /usr/local/bin/entrypoint.sh \
+    && test "$(head -c 2 /usr/local/bin/entrypoint.sh)" = '#!' \
+    && chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 3000
 

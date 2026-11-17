@@ -1,4 +1,3 @@
-
 #!/bin/sh
 
 # ============================================================
@@ -74,8 +73,15 @@ if [ -n "${DB_HOST:-}" ] &&
     php -r '
         $host = getenv("DB_HOST");
         $port = (int) getenv("DB_PORT");
+        $deadline = microtime(true) + 60;
 
-        for ($i = 0; $i < 60; $i++) {
+        do {
+            $remaining = $deadline - microtime(true);
+
+            if ($remaining <= 0) {
+                break;
+            }
+
             $errno = 0;
             $errstr = "";
 
@@ -84,7 +90,7 @@ if [ -n "${DB_HOST:-}" ] &&
                 $port,
                 $errno,
                 $errstr,
-                2
+                min(2, $remaining)
             );
 
             if ($connection !== false) {
@@ -94,8 +100,8 @@ if [ -n "${DB_HOST:-}" ] &&
                 exit(0);
             }
 
-            sleep(1);
-        }
+            usleep((int) (min(1, max(0, $deadline - microtime(true))) * 1000000));
+        } while (microtime(true) < $deadline);
 
         fwrite(
             STDERR,
@@ -142,27 +148,77 @@ chmod -R 775 storage bootstrap/cache
 
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
 
-    echo "==> Running database migrations..."
+    echo "==> Running deployment migrations under a database lock..."
 
-    run_as_app timeout 300 \
-        php artisan migrate --force --no-interaction
+    run_as_app php -r '
+        require "vendor/autoload.php";
+        $app = require "bootstrap/app.php";
+        $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-    echo "==> Database migrations completed."
+        $database = Illuminate\Support\Facades\DB::connection();
+        $driver = $database->getDriverName();
 
-    # --------------------------------------------------------
-    # 8. Filament upgrade
-    # --------------------------------------------------------
+        if (in_array($driver, ["mysql", "mariadb"], true)) {
+            $lockName = "portfolio_schema_migrations";
+            $lockQuery = "SELECT GET_LOCK(?, 0) AS acquired";
+            $lockBindings = [$lockName];
+            $unlockQuery = "SELECT RELEASE_LOCK(?)";
+            $unlockBindings = [$lockName];
+        } elseif ($driver === "pgsql") {
+            $lockQuery = "SELECT pg_try_advisory_lock(1879048191, 1) AS acquired";
+            $lockBindings = [];
+            $unlockQuery = "SELECT pg_advisory_unlock(1879048191, 1)";
+            $unlockBindings = [];
+        } else {
+            fwrite(STDERR, "ERROR: Database migration lock is unsupported for $driver.\n");
+            exit(1);
+        }
 
-    echo "==> Running Filament upgrade..."
+        $deadline = microtime(true) + 120;
+        $locked = false;
 
-    if ! run_as_app timeout 300 \
-        php artisan filament:upgrade; then
+        do {
+            $result = $database->selectOne($lockQuery, $lockBindings);
+            $value = (string) ($result->acquired ?? "");
 
-        echo "WARNING: Filament upgrade failed."
-        echo "Continuing application startup..."
-    fi
+            if (in_array($value, ["1", "t", "true"], true)) {
+                $locked = true;
+                break;
+            }
 
-    echo "==> Post-migration tasks completed."
+            usleep(500000);
+        } while (microtime(true) < $deadline);
+
+        if (! $locked) {
+            fwrite(STDERR, "ERROR: Timed out waiting for the database migration lock.\n");
+            exit(1);
+        }
+
+        echo "==> Database migration lock acquired.\n";
+
+        $artisan = escapeshellarg(PHP_BINARY)." ".escapeshellarg(base_path("artisan"));
+        $exitCode = 0;
+
+        try {
+            passthru("timeout 300 $artisan migrate --force --no-interaction", $migrationExitCode);
+
+            if ($migrationExitCode !== 0) {
+                $exitCode = $migrationExitCode;
+            } else {
+                echo "==> Running Filament upgrade...\n";
+                passthru("timeout 300 $artisan filament:upgrade --no-interaction", $filamentExitCode);
+
+                if ($filamentExitCode !== 0) {
+                    fwrite(STDERR, "WARNING: Filament upgrade failed; continuing application startup.\n");
+                }
+            }
+        } finally {
+            $database->selectOne($unlockQuery, $unlockBindings);
+            echo "==> Database migration lock released.\n";
+        }
+
+        exit($exitCode);
+    '
 
 else
 
