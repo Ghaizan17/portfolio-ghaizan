@@ -10,6 +10,25 @@ run_as_app() {
 }
 
 export PORT="${PORT:-3000}"
+export DB_CONNECTION="${DB_CONNECTION:-pgsql}"
+
+case "$DB_CONNECTION" in
+    mysql|mariadb)
+        export DB_PORT="${DB_PORT:-3306}"
+        ;;
+    pgsql)
+        export DB_PORT="${DB_PORT:-5432}"
+        ;;
+    *)
+        echo "ERROR: This production image supports MySQL and PostgreSQL; set DB_CONNECTION to mysql or pgsql"
+        exit 1
+        ;;
+esac
+
+if [ -z "${DB_URL:-}" ] && { [ -z "${DB_HOST:-}" ] || [ -z "${DB_DATABASE:-}" ] || [ -z "${DB_USERNAME:-}" ]; }; then
+    echo "ERROR: Configure DB_URL or DB_HOST, DB_DATABASE, and DB_USERNAME in the service environment"
+    exit 1
+fi
 
 # Wait for database (Supabase) using PHP - netcat is not guaranteed on Debian
 if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "localhost" ] && [ "$DB_HOST" != "127.0.0.1" ]; then
