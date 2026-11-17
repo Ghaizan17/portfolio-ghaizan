@@ -282,6 +282,27 @@ envsubst '$PORT' \
 
 echo "==> Verifying Apache configuration..."
 
+for module in mpm_event mpm_worker; do
+    if [ -e "/etc/apache2/mods-enabled/${module}.load" ]; then
+        echo "==> Disabling incompatible Apache module: $module"
+        a2dismod "$module"
+    fi
+done
+
+a2enmod mpm_prefork
+
+apache_modules="$(apachectl -M 2>&1 || true)"
+mpm_module_count="$(printf '%s\n' "$apache_modules" | awk '/mpm_[[:alnum:]_]+_module/ { count++ } END { print count + 0 }')"
+
+echo "==> Apache MPM modules detected: $mpm_module_count"
+
+if [ "$mpm_module_count" -ne 1 ]; then
+    printf '%s\n' "$apache_modules" >&2
+    ls -l /etc/apache2/mods-enabled/*mpm* >&2 || true
+    echo "ERROR: Apache must have exactly one MPM enabled."
+    exit 1
+fi
+
 apachectl configtest
 
 echo "==> Apache configuration is valid."
