@@ -56,8 +56,14 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 # Redis extension (optional at runtime, cheap to include)
 RUN pecl install redis && docker-php-ext-enable redis
 
-# Apache modules for Laravel (.htaccess front controller)
-RUN a2enmod rewrite
+# mod_php requires Apache's prefork MPM. Ensure no incompatible MPM remains enabled.
+RUN for module in mpm_event mpm_worker; do \
+        if [ -e "/etc/apache2/mods-enabled/${module}.load" ]; then \
+            a2dismod "$module"; \
+        fi; \
+    done \
+    && a2enmod mpm_prefork rewrite \
+    && test "$(apachectl -M 2>&1 | grep -Ec 'mpm_(prefork|event|worker)_module')" -eq 1
 
 # PHP config
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-custom.ini
