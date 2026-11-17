@@ -1,16 +1,33 @@
+
 #!/bin/sh
-# Entrypoint for Laravel production container (Apache + mod_php)
 
-set -e
+# ============================================================
+# Laravel Production Entrypoint
+# Apache + PHP + Supervisor
+# Railway Deployment
+# ============================================================
 
-echo "==> Container starting ($(date -u '+%H:%M:%S'))"
+set -eu
+
+echo "============================================================"
+echo " Laravel Production Container"
+echo " Starting at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+echo "============================================================"
+
+# ------------------------------------------------------------
+# 1. Application user execution
+# ------------------------------------------------------------
 
 run_as_app() {
     runuser -u www-data -- "$@"
 }
 
+# ------------------------------------------------------------
+# 2. Environment configuration
+# ------------------------------------------------------------
+
 export PORT="${PORT:-3000}"
-export DB_CONNECTION="${DB_CONNECTION:-pgsql}"
+export DB_CONNECTION="${DB_CONNECTION:-mysql}"
 
 case "$DB_CONNECTION" in
     mysql|mariadb)
@@ -20,56 +37,91 @@ case "$DB_CONNECTION" in
         export DB_PORT="${DB_PORT:-5432}"
         ;;
     *)
-        echo "ERROR: This production image supports MySQL and PostgreSQL; set DB_CONNECTION to mysql or pgsql"
+        echo "ERROR: Unsupported DB_CONNECTION: $DB_CONNECTION"
+        echo "Supported: mysql, mariadb, pgsql"
         exit 1
         ;;
 esac
 
-if [ -z "${DB_URL:-}" ] && { [ -z "${DB_HOST:-}" ] || [ -z "${DB_DATABASE:-}" ] || [ -z "${DB_USERNAME:-}" ]; }; then
-    echo "ERROR: Configure DB_URL or DB_HOST, DB_DATABASE, and DB_USERNAME in the service environment"
+echo "==> Application configuration"
+echo "    PORT: $PORT"
+echo "    DB_CONNECTION: $DB_CONNECTION"
+
+# ------------------------------------------------------------
+# 3. Validate database configuration
+# ------------------------------------------------------------
+
+if [ -z "${DB_URL:-}" ] && {
+    [ -z "${DB_HOST:-}" ] ||
+    [ -z "${DB_DATABASE:-}" ] ||
+    [ -z "${DB_USERNAME:-}" ]
+}; then
+    echo "ERROR: Missing database configuration."
+    echo "Configure DB_URL or DB_HOST, DB_DATABASE, DB_USERNAME."
     exit 1
 fi
 
-# Wait for database (Supabase) using PHP - netcat is not guaranteed on Debian
-if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "localhost" ] && [ "$DB_HOST" != "127.0.0.1" ]; then
-    echo "Waiting for database at $DB_HOST:$DB_PORT..."
+# ------------------------------------------------------------
+# 4. Wait for database connection
+# ------------------------------------------------------------
+
+if [ -n "${DB_HOST:-}" ] &&
+   [ "$DB_HOST" != "localhost" ] &&
+   [ "$DB_HOST" != "127.0.0.1" ]; then
+
+    echo "==> Waiting for database at $DB_HOST:$DB_PORT..."
+
     php -r '
         $host = getenv("DB_HOST");
         $port = (int) getenv("DB_PORT");
+
         for ($i = 0; $i < 60; $i++) {
             $errno = 0;
             $errstr = "";
-            if (@fsockopen($host, $port, $errno, $errstr, 2)) {
-                fwrite(STDOUT, "Database is ready!\n");
+
+            $connection = @fsockopen(
+                $host,
+                $port,
+                $errno,
+                $errstr,
+                2
+            );
+
+            if ($connection !== false) {
+                fclose($connection);
+
+                echo "Database connection is reachable!\n";
                 exit(0);
             }
+
             sleep(1);
         }
-        fwrite(STDERR, "ERROR: database not reachable after 60s\n");
+
+        fwrite(
+            STDERR,
+            "ERROR: Database not reachable after 60 seconds.\n"
+        );
+
         exit(1);
     '
 fi
 
-# Validate APP_KEY comes from platform environment
-if [ -z "$APP_KEY" ]; then
-    echo "ERROR: APP_KEY environment variable is not set"
-    echo "Generate one locally with: php artisan key:generate --show"
-    echo "Then set it in Render Environment Variables"
+# ------------------------------------------------------------
+# 5. Validate Laravel APP_KEY
+# ------------------------------------------------------------
+
+if [ -z "${APP_KEY:-}" ]; then
+    echo "ERROR: APP_KEY environment variable is not set."
+    echo "Generate using: php artisan key:generate --show"
     exit 1
 fi
 
-# Migrations gated by env var (default true for first deploy)
-if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
-    echo "==> Running database migrations..."
-    # timeout is an external binary: it must run *inside* the wrapper, because a
-    # shell function (run_as_app) cannot be executed by timeout directly.
-    run_as_app timeout 300 php artisan migrate --force --no-interaction
-    echo "==> Migrations done, running filament:upgrade..."
-    run_as_app timeout 300 php artisan filament:upgrade || echo "WARN: filament:upgrade failed (non-fatal)"
-    echo "==> Post-migrate steps done"
-fi
+# ------------------------------------------------------------
+# 6. Prepare Laravel runtime directories
+# ------------------------------------------------------------
 
-# Ensure runtime directories and permissions
+echo "==> Preparing Laravel directories..."
+
 mkdir -p \
     storage/framework/cache \
     storage/framework/sessions \
@@ -80,33 +132,111 @@ mkdir -p \
     bootstrap/cache \
     /var/log/supervisor
 
-chown -R www-data:www-data storage bootstrap/cache /var/log/supervisor
+chown -R www-data:www-data storage bootstrap/cache
+
 chmod -R 775 storage bootstrap/cache
 
-# Create storage link if missing
+# ------------------------------------------------------------
+# 7. Run Laravel database migrations
+# ------------------------------------------------------------
+
+if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
+
+    echo "==> Running database migrations..."
+
+    run_as_app timeout 300 \
+        php artisan migrate --force --no-interaction
+
+    echo "==> Database migrations completed."
+
+    # --------------------------------------------------------
+    # 8. Filament upgrade
+    # --------------------------------------------------------
+
+    echo "==> Running Filament upgrade..."
+
+    if ! run_as_app timeout 300 \
+        php artisan filament:upgrade; then
+
+        echo "WARNING: Filament upgrade failed."
+        echo "Continuing application startup..."
+    fi
+
+    echo "==> Post-migration tasks completed."
+
+else
+
+    echo "==> Database migrations skipped (RUN_MIGRATIONS=false)."
+
+fi
+
+# ------------------------------------------------------------
+# 9. Laravel storage link
+# ------------------------------------------------------------
+
+echo "==> Checking Laravel storage link..."
+
 if [ ! -L public/storage ]; then
     run_as_app php artisan storage:link
 fi
 
-# Fix HOME: supervisor children inherit root's HOME (/root), which is not
-# readable by www-data and breaks libpq SSL cert lookup (postgresql.crt)
+# ------------------------------------------------------------
+# 10. Runtime environment
+# ------------------------------------------------------------
+
+# Fix HOME for www-data and PHP libraries.
 export HOME=/var/www/html
 
-# Render only captures stdout/stderr, so also stream application logs there.
-# Without this a 500 error is written to storage/logs only and is invisible.
+# Send Laravel logs to stderr.
 case ",${LOG_STACK:-single}," in
-    *,stderr,*) ;;
-    *) export LOG_STACK="${LOG_STACK:-single},stderr" ;;
+    *,stderr,*)
+        ;;
+    *)
+        export LOG_STACK="${LOG_STACK:-single},stderr"
+        ;;
 esac
 
-# Substitute PORT into Apache configs
-envsubst '$PORT' < /etc/apache2/ports.conf.template > /etc/apache2/ports.conf
-envsubst '$PORT' < /etc/apache2/sites-available/000-default.conf.template > /etc/apache2/sites-available/000-default.conf
+# ------------------------------------------------------------
+# 11. Apache configuration
+# ------------------------------------------------------------
 
-# Verify Apache config before starting
-echo "==> Verifying Apache config..."
+echo "==> Configuring Apache port: $PORT"
+
+if [ ! -f /etc/apache2/ports.conf.template ]; then
+    echo "ERROR: Apache ports.conf.template not found."
+    exit 1
+fi
+
+if [ ! -f /etc/apache2/sites-available/000-default.conf.template ]; then
+    echo "ERROR: Apache virtual host template not found."
+    exit 1
+fi
+
+envsubst '$PORT' \
+    < /etc/apache2/ports.conf.template \
+    > /etc/apache2/ports.conf
+
+envsubst '$PORT' \
+    < /etc/apache2/sites-available/000-default.conf.template \
+    > /etc/apache2/sites-available/000-default.conf
+
+# ------------------------------------------------------------
+# 12. Verify Apache configuration
+# ------------------------------------------------------------
+
+echo "==> Verifying Apache configuration..."
+
 apachectl configtest
-echo "==> Entrypoint complete, starting supervisor"
 
-# Start supervisor (PID 1) managing apache + queue workers + scheduler
+echo "==> Apache configuration is valid."
+
+# ------------------------------------------------------------
+# 13. Start Supervisor
+# ------------------------------------------------------------
+
+echo "============================================================"
+echo " Laravel container initialization completed."
+echo " Starting Supervisor..."
+echo "============================================================"
+
 exec "$@"
