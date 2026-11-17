@@ -97,10 +97,10 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/laravel.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-EXPOSE 80
+EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD sh -c "curl -fsS http://localhost:\${PORT:-80}/up || exit 1"
+    CMD sh -c "curl -fsS http://localhost:\${PORT:-3000}/up || exit 1"
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

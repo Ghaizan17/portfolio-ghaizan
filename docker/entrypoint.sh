@@ -9,7 +9,7 @@ run_as_app() {
     runuser -u www-data -- "$@"
 }
 
-export PORT="${PORT:-80}"
+export PORT="${PORT:-3000}"
 
 # Wait for database (Supabase) using PHP - netcat is not guaranteed on Debian
 if [ -n "$DB_HOST" ] && [ "$DB_HOST" != "localhost" ] && [ "$DB_HOST" != "127.0.0.1" ]; then
